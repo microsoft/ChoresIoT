@@ -25,6 +25,9 @@ const httpTrigger: AzureFunction = async function (
 
   context.res = {
     body: blobBody,
+    headers: {
+      'Content-Type': 'application/json'
+    }
   };
 };
 

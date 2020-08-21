@@ -13,7 +13,8 @@ namespace ChoreIoT
     {
         public override void Configure(IFunctionsHostBuilder builder)
         {
-            builder.Services.AddSingleton<ChoreService, ChoreService>();
+            builder.Services.AddHttpClient();
+            builder.Services.AddSingleton<ChoreService>();
         }
     }
 }

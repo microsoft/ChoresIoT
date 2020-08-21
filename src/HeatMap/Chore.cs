@@ -1,6 +1,4 @@
-
-
-namespace ChoreIot
+namespace HeatMap
 {
     public class Chore
     {
