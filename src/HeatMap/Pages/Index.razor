@@ -47,10 +47,7 @@
         var connectionInfo = await responseMessage.Content.ReadFromJsonAsync<ConnectionInfo>();
 
         var connection = new HubConnectionBuilder()
-            .WithUrl(connectionInfo.Url, (options) =>
-            {
-                options.AccessTokenProvider = () => Task.FromResult(connectionInfo.AccessToken);
-            })
+            .WithUrl("http://localhost:7071/api")
             .WithAutomaticReconnect()
             .Build();
 
