@@ -24,9 +24,10 @@ namespace ChoreIot
         // }
 
         [FunctionName(nameof(negotiate))]
-        public static SignalRConnectionInfo negotiate(
+        public SignalRConnectionInfo negotiate(
             [HttpTrigger(AuthorizationLevel.Anonymous, "post")] HttpRequest req,
-            [SignalRConnectionInfo(HubName = "heatmap")] SignalRConnectionInfo connectionInfo)
+            [SignalRConnectionInfo(HubName = "heatmap")] SignalRConnectionInfo connectionInfo,
+            ILogger log)
         {
             return connectionInfo;
         }
