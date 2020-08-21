@@ -6,6 +6,7 @@ using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.Extensions.Http;
 using Microsoft.Extensions.Logging;
 using System;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace ChoreIot
@@ -18,12 +19,12 @@ namespace ChoreIot
             choreService = _choreService;
         }
 
-        [FunctionName("NotifyTimer")]
-        public async Task Run([TimerTrigger("0 */5 * * * *")] TimerInfo myTimer, ILogger log)
-        {
-            log.LogInformation($"C# Timer trigger function executed at: {DateTime.Now}");
-            await ProcessChores();
-        }
+        // [FunctionName("NotifyTimer")]
+        // public async Task Run([TimerTrigger("0 */5 * * * *")] TimerInfo myTimer, ILogger log)
+        // {
+        //     log.LogInformation($"C# Timer trigger function executed at: {DateTime.Now}");
+        //     await ProcessChores();
+        // }
 
         [FunctionName("NotifyHttp")]
         public async Task<IActionResult> NotifyHttp(
@@ -39,25 +40,31 @@ namespace ChoreIot
         {
             if (Convert.ToBoolean(Environment.GetEnvironmentVariable("Run")))
             {
-                var chores = await choreService.GetChores();
-                foreach (var chore in chores)
+                var choreData = await choreService.GetChores();
+
+                foreach (var chore in choreData.Chores)
                 {
-                    if (chore.Status == "Red")
+                    // if the status is greater than the threshold, sound an alarm
+                    if (chore.Status >= chore.Threshold)
                     {
-                        var msgString = $"Hey, clean {chore.ZoneId}!";
-                        SendSmsMessage(msgString);
+                        var assignedTo = choreData.Assignees.First(x => x.Name == chore.AssignedTo);
+                        SendSmsMessage(chore, assignedTo);
                     }
                 }
             }
         }
 
-        private void SendSmsMessage(string msg)
+        private void SendSmsMessage(Chore chore, Assignee assignee)
         {
             SmsClient sms = new SmsClient(Environment.GetEnvironmentVariable("ACSConnectionString"));
 
-            Azure.Communication.PhoneNumber source = new Azure.Communication.PhoneNumber(Environment.GetEnvironmentVariable("FromNumber"));
-            Azure.Communication.PhoneNumber destination = new Azure.Communication.PhoneNumber(Environment.GetEnvironmentVariable("ToNumber"));
-            sms.Send(source, destination, msg,
+            Azure.Communication.PhoneNumber source = 
+                new Azure.Communication.PhoneNumber(Environment.GetEnvironmentVariable("FromNumber"));
+            
+            Azure.Communication.PhoneNumber destination = 
+                new Azure.Communication.PhoneNumber(assignee.Phone);
+
+            sms.Send(source, destination, chore.Message,
                 sendSmsOptions: new SendSmsOptions { EnableDeliveryReport = true });
         }
     }

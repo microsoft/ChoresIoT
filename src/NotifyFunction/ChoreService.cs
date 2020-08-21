@@ -13,7 +13,7 @@ namespace ChoreIot
     {
         private readonly HttpClient client = new HttpClient();
 
-        public async Task<List<Chores>> GetChores()
+        public async Task<ChoreListData> GetChores()
         {
             HttpResponseMessage response = await client.GetAsync(Environment.GetEnvironmentVariable("ChoresApi"));
             response.EnsureSuccessStatusCode();
@@ -24,7 +24,7 @@ namespace ChoreIot
             };
 
             string responseBody = await response.Content.ReadAsStringAsync();
-            return JsonSerializer.Deserialize<List<Chores>>(responseBody, options);
+            return JsonSerializer.Deserialize<ChoreListData>(responseBody, options);
         }
     }
 }
