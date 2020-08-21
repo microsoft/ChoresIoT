@@ -1,0 +1,75 @@
+﻿@using Microsoft.AspNetCore.SignalR.Client
+@using System.Threading.Tasks
+@page "/"
+@inject HttpClient Http
+
+<h1>[Heatmap Placeholder]</h1>
+
+<p>
+    Right now this is just a table with the list of chores and their status, being updated in real-time. Eventually this will be a house floor plan with icons noting the status of each chore in each zone.
+</p>
+
+<table class="table">
+    <thead class="thead-dark">
+        <tr>
+            <th scope="col">Assigned To</th>
+            <th scope="col">Chore</th>
+            <th scope="col">Status</th>
+            <th scope="col">Threshold</th>
+            <th scope="col">Zone</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var chore in Chores)
+        {
+        <tr>
+            <th scope="row">@chore.AssignedTo</th>
+            <td>@chore.Message</td>
+            <td>@chore.Status</td>
+            <td>@chore.Threshold</td>
+            <td>@chore.ZoneId</td>
+        </tr>
+        }
+    </tbody>
+</table>
+
+
+@code {
+    private string _functionUrl = "http://localhost:7071/api/negotiate";
+    private string _refreshUrl = "http://localhost:7071/api/NotifyHttp";
+
+    public List<Chore> Chores { get; set; } = new List<Chore>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var emptyContent = new StringContent(string.Empty);
+        var responseMessage = await Http.PostAsync(_functionUrl, emptyContent);
+        var connectionInfo = await responseMessage.Content.ReadFromJsonAsync<ConnectionInfo>();
+
+        var connection = new HubConnectionBuilder()
+            .WithUrl(connectionInfo.Url, (options) =>
+            {
+                options.AccessTokenProvider = () => Task.FromResult(connectionInfo.AccessToken);
+            })
+            .WithAutomaticReconnect()
+            .Build();
+
+        connection.On<Chore>("choreStatusUpdated", (chore) => 
+        {
+            if(Chores.Any(x => x.Message == chore.Message))
+            {
+                Chores.RemoveAll(x => x.Message == chore.Message);
+            }
+
+            Chores.Add(chore);
+            Chores = Chores.OrderBy(x => x.AssignedTo).ThenBy(x => x.Message).ToList();
+
+            StateHasChanged();
+        });
+
+        await connection.StartAsync();
+
+        // eventually we can erase this, once the Pi starts triggering it
+        await Http.GetAsync(_refreshUrl);
+    }
+}
