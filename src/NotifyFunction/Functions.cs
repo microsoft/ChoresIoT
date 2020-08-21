@@ -1,22 +1,19 @@
-using Azure.Communication.Sms;
-using Azure.Communication.Sms.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.Extensions.Http;
+using Microsoft.Azure.WebJobs.Extensions.SignalRService;
 using Microsoft.Extensions.Logging;
-using System;
-using System.Linq;
 using System.Threading.Tasks;
 
 namespace ChoreIot
 {
     public class Functions
     {
-        private readonly ChoreService choreService;
-        public Functions(ChoreService _choreService)
+        private readonly ChoreService _choreService;
+        public Functions(ChoreService choreService)
         {
-            choreService = _choreService;
+            _choreService = choreService;
         }
 
         // [FunctionName("NotifyTimer")]
@@ -26,46 +23,32 @@ namespace ChoreIot
         //     await ProcessChores();
         // }
 
-        [FunctionName("NotifyHttp")]
+        [FunctionName(nameof(negotiate))]
+        public static SignalRConnectionInfo negotiate(
+            [HttpTrigger(AuthorizationLevel.Anonymous, "post")] HttpRequest req,
+            [SignalRConnectionInfo(HubName = "heatmap")] SignalRConnectionInfo connectionInfo)
+        {
+            return connectionInfo;
+        }
+
+        [FunctionName(nameof(NotifyHttp))]
         public async Task<IActionResult> NotifyHttp(
                [HttpTrigger(AuthorizationLevel.Anonymous, "get", "post", Route = null)] HttpRequest req,
+               [SignalR(HubName = "heatmap")] IAsyncCollector<SignalRMessage> heatmap,
                ILogger log)
         {
             log.LogInformation("C# HTTP trigger function processed a request.");
-            await ProcessChores();
-            return new OkObjectResult("");
-        }
 
-        private async Task ProcessChores()
-        {
-            if (Convert.ToBoolean(Environment.GetEnvironmentVariable("Run")))
+            await _choreService.ProcessChores(chore => 
             {
-                var choreData = await choreService.GetChores();
-
-                foreach (var chore in choreData.Chores)
+                heatmap.AddAsync(new SignalRMessage
                 {
-                    // if the status is greater than the threshold, sound an alarm
-                    if (chore.Status >= chore.Threshold)
-                    {
-                        var assignedTo = choreData.Assignees.First(x => x.Name == chore.AssignedTo);
-                        SendSmsMessage(chore, assignedTo);
-                    }
-                }
-            }
-        }
+                    Target = "choreStatusUpdated",
+                    Arguments = new[] { chore }
+                });
+            });
 
-        private void SendSmsMessage(Chore chore, Assignee assignee)
-        {
-            SmsClient sms = new SmsClient(Environment.GetEnvironmentVariable("ACSConnectionString"));
-
-            Azure.Communication.PhoneNumber source = 
-                new Azure.Communication.PhoneNumber(Environment.GetEnvironmentVariable("FromNumber"));
-            
-            Azure.Communication.PhoneNumber destination = 
-                new Azure.Communication.PhoneNumber(assignee.Phone);
-
-            sms.Send(source, destination, chore.Message,
-                sendSmsOptions: new SendSmsOptions { EnableDeliveryReport = true });
+            return new OkObjectResult("");
         }
     }
 }
