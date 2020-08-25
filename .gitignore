@@ -354,3 +354,4 @@ MigrationBackup/
 /src/choresFunction/getChores/sample.dat
 /src/choresFunction/updateChores/sample.dat
 /src/NotifyFunction/nuget.config
+/src/choresUpdater/config.py
