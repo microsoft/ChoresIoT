@@ -40,14 +40,31 @@ namespace ChoreIot
         {
             log.LogInformation("C# HTTP trigger function processed a request.");
 
-            await _choreService.ProcessChores(chore => 
-            {
-                heatmap.AddAsync(new SignalRMessage
+            await _choreService.ProcessChores(
+                choreUpdated: (chore) =>
                 {
-                    Target = "choreStatusUpdated",
-                    Arguments = new[] { chore }
+                    heatmap.AddAsync(new SignalRMessage
+                    {
+                        Target = "choreStatusUpdated",
+                        Arguments = new[] { chore }
+                    });
+                },
+                beforeSendSms: (chore) => 
+                {
+                    heatmap.AddAsync(new SignalRMessage
+                    {
+                        Target = "textingChoreAssignee",
+                        Arguments = new[] { chore }
+                    });
+                },
+                afterSendSms: (chore) => 
+                {
+                    heatmap.AddAsync(new SignalRMessage
+                    {
+                        Target = "choreAssigneeTexted",
+                        Arguments = new[] { chore }
+                    });
                 });
-            });
 
             return new OkObjectResult("");
         }
