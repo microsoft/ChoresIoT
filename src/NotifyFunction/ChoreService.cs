@@ -54,6 +54,8 @@ namespace ChoreIot
                         var assignedTo = choreData.Assignees.First(x => x.Name == chore.AssignedTo);
                         var messageId = AzureCommunicationService.SendSmsMessage(chore, assignedTo);
 
+                        chore.MessageId = messageId;
+
                         afterSendSms?.Invoke(chore);
                     }
                 }

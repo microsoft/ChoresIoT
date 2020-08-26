@@ -9,6 +9,6 @@ namespace HeatMap
         public int Status { get; set; }
         public int Threshold { get; set; }
         public string SmsStatus { get; set; }
-        public string LastSmsSentMessageId { get; set; }
+        public string MessageId { get; set; }
     }
 }

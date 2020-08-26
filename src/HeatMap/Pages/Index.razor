@@ -63,7 +63,7 @@
 
         connection.On<Chore>("choreStatusUpdated", (chore) => 
         {
-            RemoveExistingChoreFromList(chore.ChoreId);
+            RemoveExistingChoreFromList(choreId: chore.ChoreId);
             Chores.Add(chore);
             Chores = Chores.OrderBy(x => x.AssignedTo).ThenBy(x => x.Message).ToList();
 
@@ -72,7 +72,7 @@
 
         connection.On<Chore>("textingChoreAssignee", (chore) => 
         {
-            RemoveExistingChoreFromList(chore.ChoreId);
+            RemoveExistingChoreFromList(choreId: chore.ChoreId);
             chore.SmsStatus = $"Texting {chore.AssignedTo} a reminder";
             Chores.Add(chore);
             Chores = Chores.OrderBy(x => x.AssignedTo).ThenBy(x => x.Message).ToList();
@@ -82,8 +82,20 @@
 
         connection.On<Chore>("choreAssigneeTexted", (chore) => 
         {
-            RemoveExistingChoreFromList(chore.ChoreId);
+            RemoveExistingChoreFromList(choreId: chore.ChoreId);
             chore.SmsStatus = $"Reminder sent at {DateTime.Now.ToShortTimeString()}";
+            Chores.Add(chore);
+            Chores = Chores.OrderBy(x => x.AssignedTo).ThenBy(x => x.Message).ToList();
+
+            StateHasChanged();
+        });
+
+        connection.On<string>("smsMessageReceived", (messageId) => 
+        {
+            Console.WriteLine(messageId);
+            var chore = Chores.First(x => x.MessageId == messageId);
+            RemoveExistingChoreFromList(choreId: chore.ChoreId);
+            chore.SmsStatus = $"Reminder received at {DateTime.Now.ToShortTimeString()}";
             Chores.Add(chore);
             Chores = Chores.OrderBy(x => x.AssignedTo).ThenBy(x => x.Message).ToList();
 
