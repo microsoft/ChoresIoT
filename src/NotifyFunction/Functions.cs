@@ -40,13 +40,47 @@ namespace ChoreIot
         {
             log.LogInformation("C# HTTP trigger function processed a request.");
 
-            await _choreService.ProcessChores(chore => 
-            {
-                heatmap.AddAsync(new SignalRMessage
+            await _choreService.ProcessChores(
+                choreUpdated: async (chore) =>
                 {
-                    Target = "choreStatusUpdated",
-                    Arguments = new[] { chore }
+                    await heatmap.AddAsync(new SignalRMessage
+                    {
+                        Target = "choreStatusUpdated",
+                        Arguments = new[] { chore }
+                    });
+                },
+                beforeSendSms: async (chore) => 
+                {
+                    await heatmap.AddAsync(new SignalRMessage
+                    {
+                        Target = "textingChoreAssignee",
+                        Arguments = new[] { chore }
+                    });
+                },
+                afterSendSms: async (chore) => 
+                {
+                    await heatmap.AddAsync(new SignalRMessage
+                    {
+                        Target = "choreAssigneeTexted",
+                        Arguments = new[] { chore }
+                    });
                 });
+
+            return new OkObjectResult("");
+        }
+
+        [FunctionName(nameof(HandleSmsTextDeliveredEvent))]
+        public async Task<IActionResult> HandleSmsTextDeliveredEvent(
+               [HttpTrigger(AuthorizationLevel.Anonymous, "get", "post", Route = null)] HttpRequest req,
+               [SignalR(HubName = "heatmap")] IAsyncCollector<SignalRMessage> heatmap,
+               ILogger log)
+        {
+            string messageId = req.Query["messageId"];
+
+            await heatmap.AddAsync(new SignalRMessage
+            {
+                Target = "smsMessageReceived",
+                Arguments = new[] { messageId }
             });
 
             return new OkObjectResult("");

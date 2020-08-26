@@ -17,6 +17,7 @@
             <th scope="col">Status</th>
             <th scope="col">Threshold</th>
             <th scope="col">Zone</th>
+            <th scope="col">SMS Status</th>
         </tr>
     </thead>
     <tbody>
@@ -28,6 +29,7 @@
             <td>@chore.Status</td>
             <td>@chore.Threshold</td>
             <td>@chore.ZoneId</td>
+            <td>@chore.SmsStatus</td>
         </tr>
         }
     </tbody>
@@ -40,6 +42,14 @@
 
     public List<Chore> Chores { get; set; } = new List<Chore>();
 
+    private void RemoveExistingChoreFromList(string choreId)
+    {
+        if(Chores.Any(x => x.ChoreId == choreId))
+        {
+            Chores.RemoveAll(x => x.ChoreId == choreId);
+        }
+    }
+
     protected override async Task OnInitializedAsync()
     {
         var emptyContent = new StringContent(string.Empty);
@@ -47,20 +57,45 @@
         var connectionInfo = await responseMessage.Content.ReadFromJsonAsync<ConnectionInfo>();
 
         var connection = new HubConnectionBuilder()
-            .WithUrl(connectionInfo.Url, (options) =>
-            {
-                options.AccessTokenProvider = () => Task.FromResult(connectionInfo.AccessToken);
-            })
+            .WithUrl("http://localhost:7071/api")
             .WithAutomaticReconnect()
             .Build();
 
         connection.On<Chore>("choreStatusUpdated", (chore) => 
         {
-            if(Chores.Any(x => x.Message == chore.Message))
-            {
-                Chores.RemoveAll(x => x.Message == chore.Message);
-            }
+            RemoveExistingChoreFromList(choreId: chore.ChoreId);
+            Chores.Add(chore);
+            Chores = Chores.OrderBy(x => x.AssignedTo).ThenBy(x => x.Message).ToList();
 
+            StateHasChanged();
+        });
+
+        connection.On<Chore>("textingChoreAssignee", (chore) => 
+        {
+            RemoveExistingChoreFromList(choreId: chore.ChoreId);
+            chore.SmsStatus = $"Texting {chore.AssignedTo} a reminder";
+            Chores.Add(chore);
+            Chores = Chores.OrderBy(x => x.AssignedTo).ThenBy(x => x.Message).ToList();
+
+            StateHasChanged();
+        });
+
+        connection.On<Chore>("choreAssigneeTexted", (chore) => 
+        {
+            RemoveExistingChoreFromList(choreId: chore.ChoreId);
+            chore.SmsStatus = $"Reminder sent at {DateTime.Now.ToShortTimeString()}";
+            Chores.Add(chore);
+            Chores = Chores.OrderBy(x => x.AssignedTo).ThenBy(x => x.Message).ToList();
+
+            StateHasChanged();
+        });
+
+        connection.On<string>("smsMessageReceived", (messageId) => 
+        {
+            Console.WriteLine(messageId);
+            var chore = Chores.First(x => x.MessageId == messageId);
+            RemoveExistingChoreFromList(choreId: chore.ChoreId);
+            chore.SmsStatus = $"Reminder received at {DateTime.Now.ToShortTimeString()}";
             Chores.Add(chore);
             Chores = Chores.OrderBy(x => x.AssignedTo).ThenBy(x => x.Message).ToList();
 

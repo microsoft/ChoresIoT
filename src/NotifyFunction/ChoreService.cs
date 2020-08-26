@@ -34,7 +34,9 @@ namespace ChoreIot
             return JsonSerializer.Deserialize<ChoreListData>(responseBody, options);
         }
 
-        public async Task ProcessChores(Action<Chore> choreMapAction = null)
+        public async Task ProcessChores(Action<Chore> choreUpdated = null,
+            Action<Chore> beforeSendSms = null,
+            Action<Chore> afterSendSms = null)
         {
             if (Convert.ToBoolean(Environment.GetEnvironmentVariable("Run")))
             {
@@ -42,13 +44,19 @@ namespace ChoreIot
 
                 foreach (var chore in choreData.Chores)
                 {
-                    choreMapAction?.Invoke(chore);
+                    choreUpdated?.Invoke(chore);
 
                     // if the status is greater than the threshold, sound an alarm
                     if (chore.Status >= chore.Threshold)
                     {
+                        beforeSendSms?.Invoke(chore);
+
                         var assignedTo = choreData.Assignees.First(x => x.Name == chore.AssignedTo);
-                        AzureCommunicationService.SendSmsMessage(chore, assignedTo);
+                        var messageId = AzureCommunicationService.SendSmsMessage(chore, assignedTo);
+
+                        chore.MessageId = messageId;
+
+                        afterSendSms?.Invoke(chore);
                     }
                 }
             }

@@ -6,7 +6,7 @@ namespace ChoreIot
 {
     internal class AzureCommunicationService
     {
-        internal static void SendSmsMessage(Chore chore, Assignee assignee)
+        internal static string SendSmsMessage(Chore chore, Assignee assignee)
         {
             SmsClient sms = new SmsClient(Environment.GetEnvironmentVariable("ACSConnectionString"));
 
@@ -16,8 +16,10 @@ namespace ChoreIot
             Azure.Communication.PhoneNumber destination = 
                 new Azure.Communication.PhoneNumber(assignee.Phone);
 
-            sms.Send(source, destination, chore.Message,
+            var response = sms.Send(source, destination, chore.Message,
                 sendSmsOptions: new SendSmsOptions { EnableDeliveryReport = true });
+
+            return response.Value.MessageId;
         }
     }
 }
