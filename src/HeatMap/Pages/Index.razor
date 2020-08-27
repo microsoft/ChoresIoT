@@ -55,6 +55,7 @@
     protected override async Task OnInitializedAsync()
     {
 
+        // it bombs right here with a 503. Tried a few different ways to make the call.
         var responseMessage = await Http.PostAsJsonAsync(_functionUrl, "");
         var connectionInfo = await responseMessage.Content.ReadFromJsonAsync<ConnectionInfo>();
 
