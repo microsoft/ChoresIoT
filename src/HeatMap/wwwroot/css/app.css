@@ -28,6 +28,8 @@
 
 html, body {
     font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    background-color: transparent;
+    color: #fff;
 }
 
 a, .btn-link {

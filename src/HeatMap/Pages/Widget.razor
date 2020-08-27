@@ -28,7 +28,7 @@
 </div>
 
 @code {
-    private string _hubConnectionUrl = "http://localhost:7071/api";
+    private string _hubConnectionUrl = "https://acs-notify.azurewebsites.net/api";
     private string _functionUrl = "https://chores-iot.azurewebsites.net/api/getChores";
 
     public List<Chore> Chores { get; set; } = new List<Chore> ();
