@@ -30,14 +30,14 @@
 
 
 @code {
-    private string _functionUrl = "http://localhost:7073/api/getChores";
+    private string _functionUrl = "https://chores-iot.azurewebsites.net/api/getChores";
 
     public List<Assignee> People { get; set; } = new List<Assignee>();
 
     protected override async Task OnInitializedAsync()
     {
         var result = await Http.GetFromJsonAsync<ChoreListData>(_functionUrl);
-        
+
         People = result.Assignees;
 
         StateHasChanged();

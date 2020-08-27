@@ -1,4 +1,5 @@
 using System;
+using System.Threading.Tasks;
 using Azure.Communication.Sms;
 using Azure.Communication.Sms.Models;
 
@@ -6,7 +7,7 @@ namespace ChoreIot
 {
     internal class AzureCommunicationService
     {
-        internal static string SendSmsMessage(Chore chore, Assignee assignee)
+        internal static async Task<string> SendSmsMessage(Chore chore, Assignee assignee)
         {
             SmsClient sms = new SmsClient(Environment.GetEnvironmentVariable("ACSConnectionString"));
 
@@ -16,7 +17,7 @@ namespace ChoreIot
             Azure.Communication.PhoneNumber destination = 
                 new Azure.Communication.PhoneNumber(assignee.Phone);
 
-            var response = sms.Send(source, destination, chore.Message,
+            var response = await sms.SendAsync(source, destination, chore.Message,
                 sendSmsOptions: new SendSmsOptions { EnableDeliveryReport = true });
 
             return response.Value.MessageId;

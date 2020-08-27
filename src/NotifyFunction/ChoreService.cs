@@ -1,12 +1,8 @@
 using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Net.Http;
-using System.Text;
-using System.Threading.Tasks;
-using System.Text.Json;
-using System.Text.Json.Serialization;
 using System.Linq;
+using System.Net.Http;
+using System.Text.Json;
+using System.Threading.Tasks;
 
 namespace ChoreIot
 {
@@ -34,14 +30,12 @@ namespace ChoreIot
             return JsonSerializer.Deserialize<ChoreListData>(responseBody, options);
         }
 
-        public async Task ProcessChores(Action<Chore> choreUpdated = null,
+        public async Task ProcessChores(ChoreListData choreData, Action<Chore> choreUpdated = null,
             Action<Chore> beforeSendSms = null,
             Action<Chore> afterSendSms = null)
         {
             if (Convert.ToBoolean(Environment.GetEnvironmentVariable("Run")))
             {
-                var choreData = await GetChores();
-
                 foreach (var chore in choreData.Chores)
                 {
                     choreUpdated?.Invoke(chore);
@@ -52,7 +46,7 @@ namespace ChoreIot
                         beforeSendSms?.Invoke(chore);
 
                         var assignedTo = choreData.Assignees.First(x => x.Name == chore.AssignedTo);
-                        var messageId = AzureCommunicationService.SendSmsMessage(chore, assignedTo);
+                        var messageId = await AzureCommunicationService.SendSmsMessage(chore, assignedTo);
 
                         chore.MessageId = messageId;
 

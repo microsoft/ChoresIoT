@@ -1,5 +1,7 @@
 ﻿@using Microsoft.AspNetCore.SignalR.Client
 @using System.Threading.Tasks
+@using System.Net.Http;
+@using System.Net.Http.Headers;
 @page "/"
 @inject HttpClient Http
 
@@ -37,8 +39,8 @@
 
 
 @code {
-    private string _functionUrl = "http://localhost:7071/api/negotiate";
-    private string _refreshUrl = "http://localhost:7071/api/NotifyHttp";
+    private string _functionUrl = "https://acs-notify.azurewebsites.net/api/negotiate";
+    private string _refreshUrl = "https://acs-notify.azurewebsites.net/api/NotifyHttp";
 
     public List<Chore> Chores { get; set; } = new List<Chore>();
 
@@ -52,16 +54,16 @@
 
     protected override async Task OnInitializedAsync()
     {
-        var emptyContent = new StringContent(string.Empty);
-        var responseMessage = await Http.PostAsync(_functionUrl, emptyContent);
+
+        var responseMessage = await Http.PostAsJsonAsync(_functionUrl, "");
         var connectionInfo = await responseMessage.Content.ReadFromJsonAsync<ConnectionInfo>();
 
         var connection = new HubConnectionBuilder()
-            .WithUrl("http://localhost:7071/api")
+            .WithUrl("https://acs-notify.azurewebsites.net/api")
             .WithAutomaticReconnect()
             .Build();
 
-        connection.On<Chore>("choreStatusUpdated", (chore) => 
+        connection.On<Chore>("choreStatusUpdated", (chore) =>
         {
             RemoveExistingChoreFromList(choreId: chore.ChoreId);
             Chores.Add(chore);
@@ -70,7 +72,7 @@
             StateHasChanged();
         });
 
-        connection.On<Chore>("textingChoreAssignee", (chore) => 
+        connection.On<Chore>("textingChoreAssignee", (chore) =>
         {
             RemoveExistingChoreFromList(choreId: chore.ChoreId);
             chore.SmsStatus = $"Texting {chore.AssignedTo} a reminder";
@@ -80,7 +82,7 @@
             StateHasChanged();
         });
 
-        connection.On<Chore>("choreAssigneeTexted", (chore) => 
+        connection.On<Chore>("choreAssigneeTexted", (chore) =>
         {
             RemoveExistingChoreFromList(choreId: chore.ChoreId);
             chore.SmsStatus = $"Reminder sent at {DateTime.Now.ToShortTimeString()}";
@@ -90,7 +92,7 @@
             StateHasChanged();
         });
 
-        connection.On<string>("smsMessageReceived", (messageId) => 
+        connection.On<string>("smsMessageReceived", (messageId) =>
         {
             Console.WriteLine(messageId);
             var chore = Chores.First(x => x.MessageId == messageId);
@@ -103,8 +105,5 @@
         });
 
         await connection.StartAsync();
-
-        // eventually we can erase this, once the Pi starts triggering it
-        await Http.GetAsync(_refreshUrl);
     }
 }

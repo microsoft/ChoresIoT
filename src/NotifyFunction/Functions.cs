@@ -4,6 +4,7 @@ using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.Extensions.Http;
 using Microsoft.Azure.WebJobs.Extensions.SignalRService;
 using Microsoft.Extensions.Logging;
+using System.IO;
 using System.Threading.Tasks;
 
 namespace ChoreIot
@@ -16,31 +17,28 @@ namespace ChoreIot
             _choreService = choreService;
         }
 
-        // [FunctionName("NotifyTimer")]
-        // public async Task Run([TimerTrigger("0 */5 * * * *")] TimerInfo myTimer, ILogger log)
-        // {
-        //     log.LogInformation($"C# Timer trigger function executed at: {DateTime.Now}");
-        //     await ProcessChores();
-        // }
-
         [FunctionName(nameof(negotiate))]
         public SignalRConnectionInfo negotiate(
             [HttpTrigger(AuthorizationLevel.Anonymous, "post")] HttpRequest req,
             [SignalRConnectionInfo(HubName = "heatmap")] SignalRConnectionInfo connectionInfo,
             ILogger log)
         {
+            req.HttpContext.Response.Headers.Add("Content-Type", "application/json");
             return connectionInfo;
         }
 
-        [FunctionName(nameof(NotifyHttp))]
-        public async Task<IActionResult> NotifyHttp(
-               [HttpTrigger(AuthorizationLevel.Anonymous, "get", "post", Route = null)] HttpRequest req,
-               [SignalR(HubName = "heatmap")] IAsyncCollector<SignalRMessage> heatmap,
-               ILogger log)
+        [FunctionName(nameof(Notify))]
+        public async Task Notify([BlobTrigger("chores/chores.json", Connection = "AzureWebJobsStorage")] Stream myBlob,
+              [SignalR(HubName = "heatmap")] IAsyncCollector<SignalRMessage> heatmap,
+              ILogger log)
         {
             log.LogInformation("C# HTTP trigger function processed a request.");
 
-            await _choreService.ProcessChores(
+            StreamReader reader = new StreamReader(myBlob);
+            string choresJson = reader.ReadToEnd();
+            var chores = System.Text.Json.JsonSerializer.Deserialize<ChoreListData>(choresJson);
+
+            await _choreService.ProcessChores(chores,
                 choreUpdated: async (chore) =>
                 {
                     await heatmap.AddAsync(new SignalRMessage
@@ -49,7 +47,7 @@ namespace ChoreIot
                         Arguments = new[] { chore }
                     });
                 },
-                beforeSendSms: async (chore) => 
+                beforeSendSms: async (chore) =>
                 {
                     await heatmap.AddAsync(new SignalRMessage
                     {
@@ -57,7 +55,7 @@ namespace ChoreIot
                         Arguments = new[] { chore }
                     });
                 },
-                afterSendSms: async (chore) => 
+                afterSendSms: async (chore) =>
                 {
                     await heatmap.AddAsync(new SignalRMessage
                     {
@@ -65,8 +63,6 @@ namespace ChoreIot
                         Arguments = new[] { chore }
                     });
                 });
-
-            return new OkObjectResult("");
         }
 
         [FunctionName(nameof(HandleSmsTextDeliveredEvent))]
