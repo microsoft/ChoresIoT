@@ -1,5 +1,31 @@
 ﻿@import url('open-iconic/font/css/open-iconic-bootstrap.min.css');
 
+/* custom stuff */
+
+.home {
+    width: 920px;
+    height: 636px;
+    background-image: url('/img/home.png');
+}
+
+.Office {
+    position: relative;
+    left: 10px;
+    top: 450px;
+    width: 64px;
+    height: 64px;
+}
+
+.Kitchen {
+    position: relative;
+    left: 445px;
+    top: 260px;
+    width: 64px;
+    height: 64px;
+}
+
+/* end custom stuff */
+
 html, body {
     font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
 }

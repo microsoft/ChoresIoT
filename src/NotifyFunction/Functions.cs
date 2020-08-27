@@ -28,9 +28,10 @@ namespace ChoreIot
         }
 
         [FunctionName(nameof(Notify))]
-        public async Task Notify([BlobTrigger("chores/chores.json", Connection = "AzureWebJobsStorage")] Stream myBlob,
-              [SignalR(HubName = "heatmap")] IAsyncCollector<SignalRMessage> heatmap,
-              ILogger log)
+        public async Task Notify(
+            [BlobTrigger("chores/chores.json", Connection = "AzureWebJobsStorage")] Stream myBlob,
+            [SignalR(HubName = "heatmap")] IAsyncCollector<SignalRMessage> heatmap,
+            ILogger log)
         {
             log.LogInformation("C# HTTP trigger function processed a request.");
 

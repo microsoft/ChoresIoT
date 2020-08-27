@@ -11,4 +11,19 @@ namespace HeatMap
         public string SmsStatus { get; set; }
         public string MessageId { get; set; }
     }
+
+    public static class ChoreExtensions
+    {
+        public static string WidgetIcon(this Chore chore)
+        {
+            if(chore.Status >= chore.Threshold) return "/img/full.png";
+            else return "/img/empty.png";
+        }
+
+        public static string HeatMapIcon(this Chore chore)
+        {
+            if(chore.Status >= chore.Threshold) return "/img/high.png";
+            else return "/img/low.png";
+        }
+    }
 }
