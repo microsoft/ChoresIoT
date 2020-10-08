@@ -1,0 +1,51 @@
+﻿@using Microsoft.AspNetCore.SignalR.Client
+@using System.Threading.Tasks
+@using System.Net.Http
+@page "/Admin/Chores"
+@inject HttpClient Http
+@using Microsoft.Extensions.Configuration
+@inject IConfiguration Configuration
+<h1>Chore Administration</h1>
+
+<p>
+    This is the chore list, where you'll be able to edit and assign chores.
+</p>
+
+<table class="table">
+    <thead class="thead-dark">
+        <tr>
+            <th scope="col">Assigned To</th>
+            <th scope="col">Chore</th>
+            <th scope="col">Status</th>
+            <th scope="col">Threshold</th>
+            <th scope="col">Zone</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var chore in Chores)
+        {
+            <tr>
+                <th scope="row">@chore.AssignedTo</th>
+                <td>@chore.Message</td>
+                <td>@chore.Status</td>
+                <td>@chore.Threshold</td>
+                <td>@chore.ZoneId</td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+
+@code {
+
+    public List<Chore> Chores { get; set; } = new List<Chore>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var result = await Http.GetFromJsonAsync<ChoreListData>(Configuration["ChoreFunctionUrl"]);
+
+        Chores = result.Chores;
+
+        StateHasChanged();
+    }
+}

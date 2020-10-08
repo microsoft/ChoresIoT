@@ -1,0 +1,93 @@
+﻿@using Microsoft.AspNetCore.SignalR.Client
+@using System.Threading.Tasks
+@using System.Net.Http;
+@using System.Net.Http.Headers;
+@page "/widget"
+@layout WidgetLayout
+@inject HttpClient Http
+@using Microsoft.Extensions.Configuration
+@inject IConfiguration Configuration
+<div class="row">
+    @foreach (var chore in Chores)
+    {
+        <div class="col">
+            <div class="row">
+                <div class="col text-center">
+                    <img src="@chore.WidgetIcon()" width="200" alt="Status">
+                </div>
+            </div>
+            <div class="row">
+                <div class="col">
+                    <h3 class="text-center">@chore.ZoneId</h3>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col text-center">@chore.SmsStatus</div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+
+    public List<Chore> Chores { get; set; } = new List<Chore>();
+
+    private void RemoveExistingChoreFromList(string choreId)
+    {
+        if (Chores.Any(x => x.ChoreId == choreId))
+        {
+            Chores.RemoveAll(x => x.ChoreId == choreId);
+        }
+    }
+
+    private async Task Preload()
+    {
+        var result = await Http.GetFromJsonAsync<ChoreListData>(Configuration["ChoreFunctionUrl"]);
+        Chores = result.Chores;
+        StateHasChanged();
+    }
+
+    private void Reload(Chore chore)
+    {
+        RemoveExistingChoreFromList(choreId: chore.ChoreId);
+        Chores.Add(chore);
+        Chores = Chores.OrderBy(x => x.AssignedTo).ThenBy(x => x.Message).ToList();
+        StateHasChanged();
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Preload();
+
+        var connection = new HubConnectionBuilder()
+            .WithUrl(Configuration["HubUrl"])
+            .WithAutomaticReconnect()
+            .Build();
+
+        connection.On<Chore>("choreStatusUpdated", (chore) =>
+        {
+            Reload(chore);
+        });
+
+        connection.On<Chore>("textingChoreAssignee", (chore) =>
+        {
+            chore.SmsStatus = $"Texting {chore.AssignedTo} a reminder";
+            Reload(chore);
+        });
+
+        connection.On<Chore>("choreAssigneeTexted", (chore) =>
+        {
+            chore.SmsStatus = $"Reminder sent at {DateTime.Now.ToShortTimeString()}";
+            Reload(chore);
+        });
+
+        connection.On<string>("smsMessageReceived", (messageId) =>
+        {
+            var chore = Chores.First(x => x.MessageId == messageId);
+            chore.SmsStatus = $"Reminder received at {DateTime.Now.ToShortTimeString()}";
+            Reload(chore);
+        });
+
+        await connection.StartAsync();
+    }
+}
