@@ -2,6 +2,8 @@
 
 Sample application for Scott Hanselman's Developer Keynote at Microsoft Ignite 2020.
 
+## **[Blog Post](https://techcommunity.microsoft.com/t5/azure-developer-community-blog/using-iot-and-azure-to-help-with-family-chores/ba-p/1809444)**
+
 # Table of contents
 
 - [Application Screens](#screens)
