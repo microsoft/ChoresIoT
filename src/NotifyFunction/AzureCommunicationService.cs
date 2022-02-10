@@ -8,16 +8,17 @@ namespace ChoreIot
     {
         internal static async Task<string> SendSmsMessage(Chore chore, Assignee assignee)
         {
-            SmsClient sms = new SmsClient(Environment.GetEnvironmentVariable("ACSConnectionString"));
+            SmsClient smsclient = new SmsClient(Environment.GetEnvironmentVariable("ACSConnectionString"));
 
-            Azure.Communication.PhoneNumber source = 
-                new Azure.Communication.PhoneNumber(Environment.GetEnvironmentVariable("FromNumber"));
+            string source = Environment.GetEnvironmentVariable("FromNumber");
             
-            Azure.Communication.PhoneNumber destination = 
-                new Azure.Communication.PhoneNumber(assignee.Phone);
+            string destination = assignee.Phone;
 
-            var response = await sms.SendAsync(source, destination, chore.Message,
-                sendSmsOptions: new SendSmsOptions { EnableDeliveryReport = true });
+            var response = await smsclient.SendAsync(
+                from: source, 
+                to: destination, 
+                message: chore.Message,
+                options: new SmsSendOptions(enableDeliveryReport: true));
 
             return response.Value.MessageId;
         }
